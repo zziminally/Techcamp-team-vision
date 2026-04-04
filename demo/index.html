@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Anti-Spoofing Live Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 700px;
+      width: 100%;
+      padding: 24px;
+    }
+
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 { font-size: 1.5rem; font-weight: 600; color: #fff; }
+    header .subtitle { font-size: 0.85rem; color: #888; margin-top: 4px; }
+
+    /* Video wrapper with state-dependent border */
+    .video-wrapper {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #333;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      background: #1a1a2e;
+    }
+    .video-wrapper.state-safe {
+      border-color: #22c55e;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+    }
+    .video-wrapper.state-spoof {
+      border-color: #ef4444;
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.5);
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      background: #000;
+    }
+
+    /* Warning banner overlay */
+    .warning-banner {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 12px;
+      background: rgba(239, 68, 68, 0.9);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-align: center;
+      letter-spacing: 2px;
+      opacity: 0;
+      transform: translateY(-100%);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .warning-banner.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Status panel */
+    .status-panel {
+      margin-top: 16px;
+      padding: 16px;
+      background: #1a1a2e;
+      border-radius: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.3s ease;
+    }
+    .dot.green { background: #22c55e; }
+    .dot.red { background: #ef4444; animation: pulse-dot 1s infinite; }
+    .dot.yellow { background: #eab308; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .score-display {
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+    .score-display strong {
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    /* Score bar */
+    .score-bar {
+      margin-top: 10px;
+      height: 6px;
+      background: #2a2a3e;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      background: #555;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    #startBtn {
+      background: #22c55e;
+      color: #fff;
+    }
+    #startBtn:hover:not(:disabled) { background: #16a34a; }
+    #stopBtn {
+      background: #ef4444;
+      color: #fff;
+    }
+    #stopBtn:hover:not(:disabled) { background: #dc2626; }
+
+    /* Info message below video */
+    .info-msg {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 0.8rem;
+      min-height: 1.2em;
+      color: #888;
+      transition: color 0.3s ease;
+    }
+    .info-msg.error { color: #ef4444; }
+    .info-msg.warn { color: #eab308; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Face Anti-Spoofing Live Demo</h1>
+      <p class="subtitle">Real-time spoof detection powered by deep learning</p>
+    </header>
+
+    <div class="video-wrapper" id="videoWrapper">
+      <video id="webcam" autoplay playsinline muted></video>
+      <div class="warning-banner" id="warningBanner">SPOOF DETECTED</div>
+    </div>
+
+    <div class="info-msg" id="infoMsg"></div>
+
+    <div class="status-panel">
+      <div class="status-row">
+        <div class="status-indicator">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Waiting to start...</span>
+        </div>
+        <div class="score-display">
+          Score: <strong id="scoreValue">--</strong>
+        </div>
+      </div>
+      <div class="score-bar">
+        <div class="score-fill" id="scoreFill"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">Start Detection</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SPOOF_THRESHOLD = 0.6;
+  const CLIP_DURATION_MS = 1500;
+  const API_URL = `${window.location.origin}/predict/video`;
+  const API_TIMEOUT_MS = 10000;
+  const MAX_CONSECUTIVE_ERRORS = 5;
+
+  // DOM refs
+  const webcamEl = document.getElementById('webcam');
+  const videoWrapper = document.getElementById('videoWrapper');
+  const warningBanner = document.getElementById('warningBanner');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const scoreValue = document.getElementById('scoreValue');
+  const scoreFill = document.getElementById('scoreFill');
+  const infoMsg = document.getElementById('infoMsg');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+
+  let stream = null;
+  let isRunning = false;
+  let consecutiveErrors = 0;
+
+  // --- MIME type detection ---
+  function pickMime() {
+    const candidates = [
+      ['video/webm;codecs=vp9', 'clip.webm'],
+      ['video/webm;codecs=vp8', 'clip.webm'],
+      ['video/webm', 'clip.webm'],
+      ['video/mp4', 'clip.mp4'],
+    ];
+    for (const [mime, name] of candidates) {
+      if (MediaRecorder.isTypeSupported(mime)) return { mime, name };
+    }
+    return { mime: '', name: 'clip.webm' };
+  }
+
+  // --- UI helpers ---
+  function setInfo(text, type) {
+    infoMsg.textContent = text;
+    infoMsg.className = 'info-msg' + (type ? ' ' + type : '');
+  }
+
+  function setStatus(label, dotClass) {
+    statusText.textContent = label;
+    statusDot.className = 'dot' + (dotClass ? ' ' + dotClass : '');
+  }
+
+  function updateUI(score) {
+    consecutiveErrors = 0;
+
+    scoreValue.textContent = score.toFixed(3);
+    const pct = Math.min(score * 100, 100);
+    scoreFill.style.width = pct + '%';
+
+    if (score < 0.4) {
+      scoreFill.style.background = '#22c55e';
+    } else if (score < 0.6) {
+      scoreFill.style.background = '#eab308';
+    } else {
+      scoreFill.style.background = '#ef4444';
+    }
+
+    if (score >= SPOOF_THRESHOLD) {
+      videoWrapper.className = 'video-wrapper state-spoof';
+      warningBanner.classList.add('visible');
+      setStatus('SPOOF DETECTED', 'red');
+      setInfo('');
+    } else {
+      videoWrapper.className = 'video-wrapper state-safe';
+      warningBanner.classList.remove('visible');
+      setStatus('Real Face', 'green');
+      setInfo('');
+    }
+  }
+
+  // --- API communication ---
+  async function sendClip(blob, filename) {
+    const form = new FormData();
+    form.append('file', blob, filename);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: form,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+        if (res.status === 400 && err.detail && err.detail.includes('No valid face')) {
+          setInfo('No face detected — please face the camera', 'warn');
+          setStatus('No face', 'yellow');
+          videoWrapper.className = 'video-wrapper';
+          warningBanner.classList.remove('visible');
+          return;
+        }
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      updateUI(data.spoof_score);
+    } catch (e) {
+      clearTimeout(timeout);
+      consecutiveErrors++;
+      const msg = e.name === 'AbortError'
+        ? 'Request timed out'
+        : 'Cannot connect to API server';
+      setInfo(msg + ' — retrying...', 'error');
+      setStatus('Error', 'yellow');
+
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        stop();
+        setInfo('API appears to be down. Click Start to retry.', 'error');
+        setStatus('Disconnected', '');
+      }
+    }
+  }
+
+  // --- Recording loop ---
+  function recordAndSend() {
+    if (!isRunning || !stream) return;
+
+    const { mime, name } = pickMime();
+    const opts = mime ? { mimeType: mime } : {};
+
+    let recorder;
+    try {
+      recorder = new MediaRecorder(stream, opts);
+    } catch (e) {
+      setInfo('MediaRecorder error: ' + e.message, 'error');
+      stop();
+      return;
+    }
+
+    const chunks = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+      if (chunks.length === 0) {
+        if (isRunning) setTimeout(recordAndSend, 200);
+        return;
+      }
+      const blob = new Blob(chunks, { type: mime || 'video/webm' });
+      await sendClip(blob, name);
+      if (isRunning) setTimeout(recordAndSend, 200);
+    };
+
+    recorder.start();
+    setTimeout(() => {
+      if (recorder.state === 'recording') recorder.stop();
+    }, CLIP_DURATION_MS);
+  }
+
+  // --- Start / Stop ---
+  async function start() {
+    // Check browser support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setInfo('Your browser does not support webcam access.', 'error');
+      return;
+    }
+    if (typeof MediaRecorder === 'undefined') {
+      setInfo('Your browser does not support video recording.', 'error');
+      return;
+    }
+
+    startBtn.disabled = true;
+    setStatus('Starting camera...', '');
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+    } catch (e) {
+      startBtn.disabled = false;
+      const msgs = {
+        NotAllowedError: 'Camera permission denied. Please allow access and reload.',
+        NotFoundError: 'No camera detected. Please connect a webcam.',
+        NotReadableError: 'Camera is in use by another application.',
+      };
+      setInfo(msgs[e.name] || 'Camera error: ' + e.message, 'error');
+      setStatus('Error', '');
+      return;
+    }
+
+    webcamEl.srcObject = stream;
+    isRunning = true;
+    consecutiveErrors = 0;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    setStatus('Analyzing...', 'green');
+    setInfo('');
+    recordAndSend();
+  }
+
+  function stop() {
+    isRunning = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+    }
+    webcamEl.srcObject = null;
+
+    videoWrapper.className = 'video-wrapper';
+    warningBanner.classList.remove('visible');
+    scoreValue.textContent = '--';
+    scoreFill.style.width = '0%';
+    setStatus('Stopped', '');
+  }
+
+  startBtn.addEventListener('click', start);
+  stopBtn.addEventListener('click', stop);
+})();
+</script>
+</body>
+</html>
