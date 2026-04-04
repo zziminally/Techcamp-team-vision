@@ -1,0 +1,17 @@
+.idea
+*.pth
+__pycache__/
+*.pyc
+.venv/
+venv/
+.eggs/
+*.egg-info/
+dist/
+build/
+data/
+output/
+test_data/
+.insightface/
+.env
+.env.local
+.DS_Store

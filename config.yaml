@@ -1,0 +1,28 @@
+# Face Anti-Spoofing API Configuration
+
+model:
+  arch: "resnet50"
+  num_classes: 2
+  checkpoint: "checkpoints/resnet50_best.pth"
+  input_size: 224
+  device: "cpu"  # "cuda" or "cpu"
+
+# Recommended threshold for classification (from EER analysis)
+# spoof_score >= threshold → FAKE
+# spoof_score < threshold → REAL
+threshold: 0.6  # EER threshold from fine-tuning experiments
+
+face_detection:
+  enabled: true
+  provider: "CPUExecutionProvider"  # "CUDAExecutionProvider" or "CPUExecutionProvider"
+  det_size: [640, 640]
+  bbox_expand: 20  # pixels to expand bounding box
+
+video:
+  max_frames: 5  # frames to extract per video
+  sampling: "uniform"  # "uniform" or "random"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
