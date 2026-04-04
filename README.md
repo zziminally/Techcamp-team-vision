@@ -32,10 +32,15 @@ cp /path/to/resnet50_best.pth checkpoints/
 ## Run
 
 ```bash
+# Start the backend API
 uv run python -m app.main
+
+# Start the frontend (separate terminal)
+cd demo && python -m http.server 3000
 ```
 
-Then open **http://localhost:8000/demo/** in your browser.
+- Backend API: **http://localhost:8000/docs**
+- Demo page: **http://localhost:3000**
 
 ## Demo Flow
 
@@ -79,7 +84,9 @@ Full API docs available at **http://localhost:8000/docs**.
 ├── nets/                 # Neural network architectures
 ├── scripts/              # Training & dataset tools
 ├── demo/                 # Frontend
-│   └── index.html        # Live demo page (vanilla HTML/JS)
+│   ├── index.html        # Page structure
+│   ├── style.css         # Styles
+│   └── app.js            # Logic (webcam, API, UI)
 ├── checkpoints/          # Model weights (gitignored)
 ├── config.yaml           # Runtime configuration
 └── pyproject.toml        # Dependencies
