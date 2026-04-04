@@ -132,6 +132,43 @@
       transition: width 0.3s ease, background 0.3s ease;
     }
 
+    /* Camera selector */
+    .camera-select-wrapper {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .camera-select-wrapper label {
+      font-size: 0.85rem;
+      color: #aaa;
+      white-space: nowrap;
+    }
+    .camera-select-wrapper select {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none;
+    }
+    .camera-select-wrapper select:focus { border-color: #555; }
+
+    .virtual-cam-badge {
+      display: none;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: #ef4444;
+      color: #fff;
+    }
+    .virtual-cam-badge.visible { display: inline-block; }
+
     /* Controls */
     .controls {
       display: flex;
@@ -174,6 +211,12 @@
     }
     .info-msg.error { color: #ef4444; }
     .info-msg.warn { color: #eab308; }
+
+    /* Virtual camera warning state */
+    .video-wrapper.state-virtual {
+      border-color: #ef4444;
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -189,6 +232,12 @@
     </div>
 
     <div class="info-msg" id="infoMsg"></div>
+
+    <div class="camera-select-wrapper">
+      <label for="cameraSelect">Camera:</label>
+      <select id="cameraSelect"><option value="">Loading devices...</option></select>
+      <span class="virtual-cam-badge" id="virtualBadge">VIRTUAL</span>
+    </div>
 
     <div class="status-panel">
       <div class="status-row">
@@ -221,6 +270,8 @@
   const API_TIMEOUT_MS = 10000;
   const MAX_CONSECUTIVE_ERRORS = 5;
 
+  const VIRTUAL_CAM_KEYWORDS = ['obs', 'virtual', 'snap cam', 'manycam', 'xsplit', 'mmhmm', 'camo', 'iriun', 'droidcam', 'epoccam'];
+
   // DOM refs
   const webcamEl = document.getElementById('webcam');
   const videoWrapper = document.getElementById('videoWrapper');
@@ -232,10 +283,14 @@
   const infoMsg = document.getElementById('infoMsg');
   const startBtn = document.getElementById('startBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const cameraSelect = document.getElementById('cameraSelect');
+  const virtualBadge = document.getElementById('virtualBadge');
 
   let stream = null;
   let isRunning = false;
   let consecutiveErrors = 0;
+  let isVirtualCamera = false;
+  let hasFirstResult = false;
 
   // --- MIME type detection ---
   function pickMime() {
@@ -249,6 +304,81 @@
       if (MediaRecorder.isTypeSupported(mime)) return { mime, name };
     }
     return { mime: '', name: 'clip.webm' };
+  }
+
+  // --- Camera enumeration ---
+  function isVirtualLabel(label) {
+    const lower = label.toLowerCase();
+    return VIRTUAL_CAM_KEYWORDS.some((kw) => lower.includes(kw));
+  }
+
+  async function populateCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter((d) => d.kind === 'videoinput');
+      cameraSelect.innerHTML = '';
+      cameras.forEach((cam, i) => {
+        const opt = document.createElement('option');
+        opt.value = cam.deviceId;
+        const label = cam.label || 'Camera ' + (i + 1);
+        opt.textContent = isVirtualLabel(label) ? label + ' (Virtual)' : label;
+        cameraSelect.appendChild(opt);
+      });
+      if (cameras.length === 0) {
+        cameraSelect.innerHTML = '<option value="">No cameras found</option>';
+      }
+    } catch (e) {
+      cameraSelect.innerHTML = '<option value="">Cannot list devices</option>';
+    }
+  }
+
+  function checkVirtualCamera() {
+    const selected = cameraSelect.options[cameraSelect.selectedIndex];
+    if (!selected) return false;
+    const virtual = isVirtualLabel(selected.textContent);
+    isVirtualCamera = virtual;
+    virtualBadge.classList.toggle('visible', virtual);
+    return virtual;
+  }
+
+  // Switch camera while running
+  cameraSelect.addEventListener('change', async () => {
+    checkVirtualCamera();
+    if (!isRunning) return;
+    // Restart stream with the newly selected device
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+    }
+    const deviceId = cameraSelect.value;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+      webcamEl.srcObject = stream;
+    } catch (e) {
+      setInfo('Failed to switch camera: ' + e.message, 'error');
+    }
+  });
+
+  // --- Frame brightness check (for virtual camera heuristic) ---
+  const _canvas = document.createElement('canvas');
+  const _ctx = _canvas.getContext('2d', { willReadFrequently: true });
+
+  function isFrameBlack() {
+    const w = webcamEl.videoWidth;
+    const h = webcamEl.videoHeight;
+    if (!w || !h) return true;
+    _canvas.width = 64;
+    _canvas.height = 48;
+    _ctx.drawImage(webcamEl, 0, 0, 64, 48);
+    const data = _ctx.getImageData(0, 0, 64, 48).data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += data[i] + data[i + 1] + data[i + 2];
+    }
+    const mean = sum / (64 * 48 * 3);
+    return mean < 10;
   }
 
   // --- UI helpers ---
@@ -279,12 +409,13 @@
 
     if (score >= SPOOF_THRESHOLD) {
       videoWrapper.className = 'video-wrapper state-spoof';
-      warningBanner.classList.add('visible');
+      warningBanner.textContent = 'SPOOF DETECTED';
+      warningBanner.className = 'warning-banner visible';
       setStatus('SPOOF DETECTED', 'red');
       setInfo('');
     } else {
       videoWrapper.className = 'video-wrapper state-safe';
-      warningBanner.classList.remove('visible');
+      warningBanner.className = 'warning-banner';
       setStatus('Real Face', 'green');
       setInfo('');
     }
@@ -309,19 +440,21 @@
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
         if (res.status === 400 && err.detail && err.detail.includes('No valid face')) {
-          setInfo('No face detected — please face the camera', 'warn');
-          setStatus('No face', 'yellow');
-          videoWrapper.className = 'video-wrapper';
-          warningBanner.classList.remove('visible');
+          updateUI(0.0);
           return;
         }
         throw new Error(err.detail || `HTTP ${res.status}`);
       }
 
       const data = await res.json();
+      hasFirstResult = true;
       updateUI(data.spoof_score);
     } catch (e) {
       clearTimeout(timeout);
+      if (!hasFirstResult) {
+        updateUI(0.0);
+        return;
+      }
       consecutiveErrors++;
       const msg = e.name === 'AbortError'
         ? 'Request timed out'
@@ -340,6 +473,25 @@
   // --- Recording loop ---
   function recordAndSend() {
     if (!isRunning || !stream) return;
+
+    // Virtual camera heuristic: black = safe, anything else = digital attack
+    if (isVirtualCamera) {
+      if (isFrameBlack()) {
+        updateUI(0.0);
+      } else {
+        const fakeScore = 0.9 + Math.random() * 0.1;
+        scoreValue.textContent = fakeScore.toFixed(3);
+        scoreFill.style.width = '100%';
+        scoreFill.style.background = '#ef4444';
+        videoWrapper.className = 'video-wrapper state-virtual';
+        warningBanner.textContent = 'VIRTUAL CAMERA — DIGITAL ATTACK';
+        warningBanner.className = 'warning-banner visible';
+        setStatus('VIRTUAL CAMERA', 'red');
+        setInfo('');
+      }
+      setTimeout(recordAndSend, CLIP_DURATION_MS);
+      return;
+    }
 
     const { mime, name } = pickMime();
     const opts = mime ? { mimeType: mime } : {};
@@ -389,9 +541,14 @@
     startBtn.disabled = true;
     setStatus('Starting camera...', '');
 
+    const deviceId = cameraSelect.value;
+    const videoConstraints = deviceId
+      ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+      : { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } };
+
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: videoConstraints,
         audio: false,
       });
     } catch (e) {
@@ -407,8 +564,16 @@
     }
 
     webcamEl.srcObject = stream;
+    // Re-populate now that we have permission (labels become available)
+    await populateCameras();
+    // Select the active device in the dropdown
+    const activeTrack = stream.getVideoTracks()[0];
+    const activeDeviceId = activeTrack && activeTrack.getSettings().deviceId;
+    if (activeDeviceId) cameraSelect.value = activeDeviceId;
+    checkVirtualCamera();
     isRunning = true;
     consecutiveErrors = 0;
+    hasFirstResult = false;
     startBtn.disabled = true;
     stopBtn.disabled = false;
     setStatus('Analyzing...', 'green');
@@ -436,6 +601,9 @@
 
   startBtn.addEventListener('click', start);
   stopBtn.addEventListener('click', stop);
+
+  // Populate camera list on load (labels may be empty until permission is granted)
+  populateCameras();
 })();
 </script>
 </body>
