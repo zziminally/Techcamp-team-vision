@@ -145,13 +145,13 @@
     }
 
     if (score >= SPOOF_THRESHOLD) {
-      videoWrapper.className = 'video-wrapper state-spoof';
+      videoWrapper.className = 'video-container state-spoof';
       warningBanner.textContent = 'SPOOF DETECTED';
       warningBanner.className = 'warning-banner visible';
       setStatus('SPOOF DETECTED', 'red');
       setInfo('');
     } else {
-      videoWrapper.className = 'video-wrapper state-safe';
+      videoWrapper.className = 'video-container state-safe';
       warningBanner.className = 'warning-banner';
       setStatus('Real Face', 'green');
       setInfo('');
@@ -220,7 +220,7 @@
         scoreValue.textContent = fakeScore.toFixed(3);
         scoreFill.style.width = '100%';
         scoreFill.style.background = '#ef4444';
-        videoWrapper.className = 'video-wrapper state-virtual';
+        videoWrapper.className = 'video-container state-virtual';
         warningBanner.textContent = 'VIRTUAL CAMERA — DIGITAL ATTACK';
         warningBanner.className = 'warning-banner visible';
         setStatus('VIRTUAL CAMERA', 'red');
@@ -329,7 +329,7 @@
     }
     webcamEl.srcObject = null;
 
-    videoWrapper.className = 'video-wrapper';
+    videoWrapper.className = 'video-container';
     warningBanner.classList.remove('visible');
     scoreValue.textContent = '--';
     scoreFill.style.width = '0%';
