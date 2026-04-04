@@ -249,9 +249,10 @@ if __name__ == "__main__":
 
     config_path = os.environ.get("FAS_CONFIG", "config.yaml")
     cfg = load_config(config_path)
+    port = int(os.environ.get("PORT", cfg.server.port))
     uvicorn.run(
         "app.main:app",
         host=cfg.server.host,
-        port=cfg.server.port,
+        port=port,
         workers=cfg.server.workers,
     )

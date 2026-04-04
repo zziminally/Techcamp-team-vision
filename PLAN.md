@@ -1,4 +1,4 @@
-# Live FAS Demo Page — Implementation Plan
+# Live FAS Demo — Implementation Plan
 
 ## Context
 
@@ -7,36 +7,38 @@ Techcamp 2026 project: a live Face Anti-Spoofing demo. Single repo with FastAPI 
 ## Architecture
 
 - **Backend:** FastAPI in `app/` — serves prediction API + demo frontend via StaticFiles
-- **Frontend:** Single `demo/index.html` with embedded CSS/JS — no build step
+- **Frontend:** `demo/` — `index.html` + `style.css` + `app.js` (no build step)
 - **Model:** ResNet50 checkpoint in `checkpoints/resnet50_best.pth` (180MB, gitignored)
 - **Flow:** Webcam -> MediaRecorder (1.5s clips) -> POST `/predict/video` -> parse `spoof_score` -> update UI -> repeat
 
 ## What's Done
 
-- [x] Added CORS middleware to `app/main.py`
-- [x] Added StaticFiles mount for `demo/` at `/demo`
-- [x] Updated `pyproject.toml` project name
-- [x] Updated `.gitignore` for consolidated repo
+- [x] FastAPI backend with CORS + StaticFiles mount
+- [x] Demo frontend with webcam, spoof detection, camera selector
+- [x] Virtual camera detection (OBS) with brightness heuristic
+- [x] Separated FE into `index.html` + `style.css` + `app.js`
+- [x] Dockerfile for Railway deployment (CPU-only PyTorch, ~1GB image)
+- [x] `PORT` env var support for Railway
+- [x] Relative API URL (`/predict/video`) — works on any domain
 
-## What's Left
+## Deployment
 
-- [ ] Create `demo/index.html` — the frontend demo page
-  - Webcam access via `getUserMedia`
-  - MediaRecorder for 1.5s video clips (WebM on Chrome/Firefox, MP4 on Safari)
-  - POST clips to `/predict/video`, parse `{"spoof_score": float}`
-  - Threshold 0.6: green border + "Real Face" vs red border + warning banner + "SPOOF DETECTED"
-  - Error handling: camera denied, API down, no face detected
-  - Score bar visualization
+```bash
+# Build locally (where the .pth file exists)
+docker build -t yourdockerhub/fas-demo:latest .
+docker push yourdockerhub/fas-demo:latest
+
+# Railway: New Project → Deploy from Docker Image
+```
 
 ## Verification
 
 ```bash
-uv run python -m app.main
-# Open http://localhost:8000/demo/
-```
+# Local
+uv run python -m app.main        # Backend at :8000
+cd demo && python -m http.server 3000  # Frontend at :3000
 
-1. Click "Start Detection" -> webcam activates, clips sent, score updates
-2. Real face -> score near 0, green border
-3. Phone screen replay -> score near 1.0, red border + warning banner
-4. No face in frame -> "No face detected" message
-5. API stopped -> error message, resumes when API restarts
+# Production
+# https://<app>.up.railway.app/demo/
+# https://<app>.up.railway.app/docs
+```

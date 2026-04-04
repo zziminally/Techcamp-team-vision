@@ -3,7 +3,7 @@
 
   const SPOOF_THRESHOLD = 0.6;
   const CLIP_DURATION_MS = 1500;
-  const API_URL = 'http://localhost:8000/predict/video';
+  const API_URL = '/predict/video';
   const API_TIMEOUT_MS = 10000;
   const MAX_CONSECUTIVE_ERRORS = 5;
 
