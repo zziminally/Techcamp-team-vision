@@ -289,7 +289,6 @@
         audio: false,
       });
     } catch (e) {
-      startBtn.disabled = false;
       const msgs = {
         NotAllowedError: 'Camera permission denied. Please allow access and reload.',
         NotFoundError: 'No camera detected. Please connect a webcam.',
@@ -297,6 +296,7 @@
       };
       setInfo(msgs[e.name] || 'Camera error: ' + e.message, 'error');
       setStatus('Error', '');
+      startBtn.disabled = false;
       return;
     }
 
@@ -311,7 +311,6 @@
     isRunning = true;
     consecutiveErrors = 0;
     hasFirstResult = false;
-    startBtn.disabled = true;
     stopBtn.disabled = false;
     setStatus('Analyzing...', 'green');
     setInfo('');

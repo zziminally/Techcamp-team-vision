@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Anti-Spoofing Live Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Face Anti-Spoofing Live Demo</h1>
+      <p class="subtitle">Real-time spoof detection powered by deep learning</p>
+    </header>
+
+    <div class="video-wrapper" id="videoWrapper">
+      <video id="webcam" autoplay playsinline muted></video>
+      <div class="warning-banner" id="warningBanner">SPOOF DETECTED</div>
+    </div>
+
+    <div class="info-msg" id="infoMsg"></div>
+
+    <div class="camera-select-wrapper">
+      <label for="cameraSelect">Camera:</label>
+      <select id="cameraSelect"><option value="">Loading devices...</option></select>
+      <span class="virtual-cam-badge" id="virtualBadge">VIRTUAL</span>
+    </div>
+
+    <div class="status-panel">
+      <div class="status-row">
+        <div class="status-indicator">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Waiting to start...</span>
+        </div>
+        <div class="score-display">
+          Score: <strong id="scoreValue">--</strong>
+        </div>
+      </div>
+      <div class="score-bar">
+        <div class="score-fill" id="scoreFill"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">Start Detection</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
