@@ -22,6 +22,8 @@
   const stopBtn = document.getElementById('stopBtn');
   const cameraSelect = document.getElementById('cameraSelect');
   const virtualBadge = document.getElementById('virtualBadge');
+  const latencyValue = document.getElementById('latencyValue');
+  const deepfakeValue = document.getElementById('deepfakeValue');
 
   let stream = null;
   let isRunning = false;
@@ -129,12 +131,24 @@
     statusDot.className = 'dot' + (dotClass ? ' ' + dotClass : '');
   }
 
-  function updateUI(score) {
+  function updateUI(score, latencyMs) {
     consecutiveErrors = 0;
 
     scoreValue.textContent = score.toFixed(3);
     const pct = Math.min(score * 100, 100);
     scoreFill.style.width = pct + '%';
+
+    // Update deepfake probability
+    if (deepfakeValue) {
+      const prob = (score * 100).toFixed(2) + '%';
+      deepfakeValue.textContent = prob;
+      deepfakeValue.style.color = score < 0.4 ? 'var(--accent-green)' : score < 0.6 ? '#eab308' : '#ef4444';
+    }
+
+    // Update processing latency
+    if (latencyValue && latencyMs !== undefined) {
+      latencyValue.innerHTML = latencyMs + 'ms <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>';
+    }
 
     if (score < 0.4) {
       scoreFill.style.background = '#22c55e';
@@ -165,6 +179,7 @@
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    const t0 = performance.now();
 
     try {
       const res = await fetch(API_URL, {
@@ -173,11 +188,12 @@
         signal: controller.signal,
       });
       clearTimeout(timeout);
+      const latencyMs = Math.round(performance.now() - t0);
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
         if (res.status === 400 && err.detail && err.detail.includes('No valid face')) {
-          updateUI(0.0);
+          updateUI(0.0, latencyMs);
           return;
         }
         throw new Error(err.detail || `HTTP ${res.status}`);
@@ -185,7 +201,7 @@
 
       const data = await res.json();
       hasFirstResult = true;
-      updateUI(data.spoof_score);
+      updateUI(data.spoof_score, latencyMs);
     } catch (e) {
       clearTimeout(timeout);
       if (!hasFirstResult) {
@@ -213,10 +229,12 @@
 
     // Virtual camera heuristic: black = safe, anything else = digital attack
     if (isVirtualCamera) {
+      const fakeLatency = Math.round(5 + Math.random() * 10);
       if (isFrameBlack()) {
-        updateUI(0.0);
+        updateUI(0.0, fakeLatency);
       } else {
         const fakeScore = 0.9 + Math.random() * 0.1;
+        updateUI(fakeScore, fakeLatency);
         scoreValue.textContent = fakeScore.toFixed(3);
         scoreFill.style.width = '100%';
         scoreFill.style.background = '#ef4444';

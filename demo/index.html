@@ -721,7 +721,7 @@
         /* Controls */
         .controls {
           position: absolute;
-          bottom: 120px;
+          bottom: 100px;
           left: 50%;
           transform: translateX(-50%);
           width: calc(100% - 32px);
@@ -812,6 +812,104 @@
           pointer-events: none;
         }
 
+        /* Responsive: stack on smaller screens */
+        @media (max-width: 1024px) {
+          body {
+            height: auto !important;
+            overflow: auto !important;
+            align-items: flex-start !important;
+          }
+          .spatial-container {
+            flex-direction: column !important;
+            width: 95vw !important;
+            height: auto !important;
+            max-height: none !important;
+            transform: none !important;
+            animation: none !important;
+            padding: 16px 0;
+          }
+          .spatial-nav {
+            width: 100% !important;
+            order: 2;
+          }
+          .presentation-area {
+            order: 1;
+            flex-direction: column !important;
+          }
+          .analysis-view {
+            min-height: auto !important;
+            padding: 8px !important;
+            overflow: visible !important;
+          }
+          /* Switch video-container from relative+absolute children to flex column */
+          .video-container,
+          div.video-container,
+          #videoWrapper {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: auto !important;
+            position: relative !important;
+          }
+          /* Video element: stop being absolute, flow in flex */
+          video,
+          video.video-feed,
+          .video-feed {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 4/3 !important;
+            flex-shrink: 0 !important;
+          }
+          /* Camera selector: flow above video */
+          .camera-select-wrapper {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: none !important;
+            order: -1 !important;
+            margin-bottom: 4px !important;
+          }
+          /* Status panel: flow below video */
+          .status-panel {
+            position: relative !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin-top: 4px !important;
+          }
+          /* Buttons: flow below status */
+          .controls {
+            position: relative !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin-top: 4px !important;
+          }
+          /* Warning banner */
+          .warning-banner {
+            position: absolute !important;
+          }
+          /* Info msg */
+          .info-msg {
+            position: relative !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: none !important;
+          }
+          .telemetry-view {
+            order: 3;
+            width: 100% !important;
+          }
+        }
+
     </style>
 </head>
 <body vid="9">
@@ -829,7 +927,7 @@
                         <path d="M12 8v4" vid="17"></path>
                         <path d="M12 16h.01" vid="18"></path>
                     </svg>
-                    <span class="brand-text" vid="19">Aura Shield</span>
+                    <span class="brand-text" vid="19">RU Live Shield</span>
                 </div>
 
                 <ul class="nav-menu" vid="20">
@@ -856,13 +954,6 @@
                 </ul>
             </div>
 
-            <div class="nav-footer" vid="42">
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&amp;w=200&amp;auto=format&amp;fit=crop" alt="User Profile" class="profile-pic" vid="43">
-                <div class="deck-info" vid="44">
-                    <span class="deck-label" vid="45">Current Deck</span>
-                    <span class="deck-slide" vid="46">Slide 2 of 5</span>
-                </div>
-            </div>
         </nav>
 
         
@@ -871,46 +962,17 @@
             
             <main class="glass-panel analysis-view" vid="48">
                 <div class="video-container" id="videoWrapper" vid="49">
-                    <video id="webcam" class="video-feed" autoplay playsinline muted vid="50"></video>
-                    
-                    <div class="tech-overlay" vid="51">
-                        <div class="scan-line" vid="52"></div>
-                        <div class="reticle" vid="53"></div>
-                        
-                        <div class="center-focus" vid="54">
-                            <div class="center-focus-h" vid="55"></div>
-                            
-                            
-                            <div class="face-mesh" vid="56">
-                                
-                                <div class="mesh-dot" style="top: 30%; left: 30%;" vid="57"></div>
-                                <div class="mesh-dot" style="top: 30%; right: 30%;" vid="58"></div>
-                                
-                                <div class="mesh-dot" style="top: 45%; left: 50%; transform: translateX(-50%);" vid="59"></div>
-                                <div class="mesh-dot" style="top: 60%; left: 50%; transform: translateX(-50%);" vid="60"></div>
-                                
-                                <div class="mesh-dot" style="top: 75%; left: 35%;" vid="61"></div>
-                                <div class="mesh-dot" style="top: 75%; right: 35%;" vid="62"></div>
-                                
-                                
-                                <div class="mesh-line" style="top: 30%; left: 30%; width: 40%; transform: rotate(0deg);" vid="63"></div>
-                                <div class="mesh-line" style="top: 30%; left: 30%; width: 35%; transform: rotate(60deg);" vid="64"></div>
-                                <div class="mesh-line" style="top: 30%; right: 30%; width: 35%; transform: rotate(120deg);" vid="65"></div>
-                                <div class="mesh-line" style="top: 60%; left: 50%; width: 25%; transform: rotate(135deg);" vid="66"></div>
-                                <div class="mesh-line" style="top: 60%; left: 50%; width: 25%; transform: rotate(45deg);" vid="67"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="warning-banner" id="warningBanner" vid="68" style="display: none;">SPOOF DETECTED</div>
-                    
-                    <div class="info-msg" id="infoMsg" vid="69"></div>
-
                     <div class="camera-select-wrapper" vid="70">
                         <label for="cameraSelect">Camera:</label>
                         <select id="cameraSelect" vid="71"><option value="">Loading devices...</option></select>
                         <span class="virtual-cam-badge" id="virtualBadge" vid="72">VIRTUAL</span>
                     </div>
+
+                    <video id="webcam" class="video-feed" autoplay playsinline muted vid="50"></video>
+
+                    <div class="warning-banner" id="warningBanner" vid="68" style="display: none;">SPOOF DETECTED</div>
+
+                    <div class="info-msg" id="infoMsg" vid="69"></div>
 
                     <div class="status-panel" vid="73">
                         <div class="status-row" vid="74">
@@ -937,16 +999,16 @@
             
             <aside class="glass-panel telemetry-view" vid="72">
                 <header class="panel-header" vid="73">
-                    <h2 class="panel-title" vid="74">Active Inference</h2>
-                    <p class="panel-subtitle" vid="75">Neural Engine analyzing spatial depth, micro-textures, and blood flow variations in real-time.</p>
+                    <h2 class="panel-title" vid="74">Live Analysis</h2>
+                    <p class="panel-subtitle" vid="75">Deep learning engine detecting replay attacks, print attacks, and virtual camera spoofing in real-time.</p>
                 </header>
 
                 <div class="metric-group" vid="76">
                     <div class="metric-card" vid="77">
                         <div class="metric-info" vid="78">
                             <span class="metric-label" vid="79">Processing Latency</span>
-                            <span class="metric-value" vid="80">
-                                12ms 
+                            <span class="metric-value" id="latencyValue" vid="80">
+                                --ms
                                 <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="81"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" vid="82"></polyline><polyline points="16 7 22 7 22 13" vid="83"></polyline></svg>
                             </span>
                         </div>
@@ -956,37 +1018,37 @@
                     <div class="metric-card" vid="87">
                         <div class="metric-info" vid="88">
                             <span class="metric-label" vid="89">Deepfake Probability</span>
-                            <span class="metric-value" style="color: var(--accent-green);" vid="90">0.02%</span>
+                            <span class="metric-value" id="deepfakeValue" style="color: var(--accent-green);" vid="90">--</span>
                         </div>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5" vid="91"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" vid="92"></rect><circle cx="8.5" cy="8.5" r="1.5" vid="93"></circle><polyline points="21 15 16 10 5 21" vid="94"></polyline></svg>
                     </div>
                 </div>
 
                 <div class="panel-header" style="margin-top: 16px;" vid="95">
-                    <h3 class="panel-title" style="font-size: 15px;" vid="96">Vector Check Sequence</h3>
+                    <h3 class="panel-title" style="font-size: 15px;" vid="96">Threat Detection</h3>
                 </div>
 
                 <div class="threat-list" vid="97">
                     <div class="threat-item" vid="98">
                         <span class="threat-name" vid="99">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="100"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" vid="101"></path><line x1="18" y1="2" x2="22" y2="6" vid="102"></line><line x1="22" y1="2" x2="18" y2="6" vid="103"></line></svg>
-                            2D Presentation Attack
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="100"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                            Replay Attack
                         </span>
-                        <span class="threat-status" vid="104">PASSED</span>
+                        <span class="threat-status" vid="104">INSPECTING</span>
                     </div>
                     <div class="threat-item" vid="105">
                         <span class="threat-name" vid="106">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="107"><polygon points="12 2 2 7 12 12 22 7 12 2" vid="108"></polygon><polyline points="2 17 12 22 22 17" vid="109"></polyline><polyline points="2 12 12 17 22 12" vid="110"></polyline></svg>
-                            3D Mask Geometry
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="107"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line></svg>
+                            Print Attack
                         </span>
-                        <span class="threat-status" vid="111">PASSED</span>
+                        <span class="threat-status" vid="111">INSPECTING</span>
                     </div>
                     <div class="threat-item" vid="112">
                         <span class="threat-name" vid="113">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="114"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" vid="115"></rect><rect x="9" y="9" width="6" height="6" vid="116"></rect><line x1="9" y1="1" x2="9" y2="4" vid="117"></line><line x1="15" y1="1" x2="15" y2="4" vid="118"></line><line x1="9" y1="20" x2="9" y2="23" vid="119"></line><line x1="15" y1="20" x2="15" y2="23" vid="120"></line><line x1="20" y1="9" x2="23" y2="9" vid="121"></line><line x1="20" y1="14" x2="23" y2="14" vid="122"></line><line x1="1" y1="9" x2="4" y2="9" vid="123"></line><line x1="1" y1="14" x2="4" y2="14" vid="124"></line></svg>
-                            Screen Re-capture
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="114"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"></path><path d="M12 8v4l3 3"></path></svg>
+                            Virtual Camera
                         </span>
-                        <span class="threat-status" vid="125">PASSED</span>
+                        <span class="threat-status" vid="125">INSPECTING</span>
                     </div>
                 </div>
 

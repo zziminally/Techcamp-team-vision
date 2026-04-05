@@ -303,3 +303,71 @@ video {
   z-index: 0;
   pointer-events: none;
 }
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 1024px) {
+  body {
+    height: auto;
+    overflow: auto;
+  }
+  .spatial-container {
+    flex-direction: column;
+    width: 95vw;
+    height: auto;
+    max-height: none;
+    transform: none;
+    animation: none;
+    padding: 16px 0;
+  }
+  .spatial-nav {
+    width: 100%;
+    order: 2;
+  }
+  .presentation-area {
+    order: 1;
+    flex-direction: column;
+  }
+  .analysis-view {
+    min-height: auto;
+    padding: 0;
+  }
+  .video-container {
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  video {
+    position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4/3;
+  }
+  .camera-select-wrapper {
+    position: relative;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    top: auto;
+    left: auto;
+  }
+  .status-panel {
+    position: relative;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    bottom: auto;
+    left: auto;
+  }
+  .controls {
+    position: relative;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    bottom: auto;
+    left: auto;
+  }
+  .telemetry-view {
+    order: 3;
+    width: 100%;
+  }
+}
